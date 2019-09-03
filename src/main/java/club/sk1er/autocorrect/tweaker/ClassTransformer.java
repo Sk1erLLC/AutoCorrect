@@ -1,6 +1,7 @@
 package club.sk1er.autocorrect.tweaker;
 
 import club.sk1er.autocorrect.tweaker.transform.GuiChatTransformer;
+import club.sk1er.autocorrect.tweaker.transform.GuiTextFieldTransformer;
 import club.sk1er.autocorrect.tweaker.transform.ITransformer;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -15,11 +16,12 @@ import java.util.Collection;
 
 public class ClassTransformer implements IClassTransformer {
 
-    private static final Logger LOGGER = LogManager.getLogger("Bossbar Mod");
+    private static final Logger LOGGER = LogManager.getLogger("AutoCorrect");
     private final Multimap<String, ITransformer> transformerMap = ArrayListMultimap.create();
 
     public ClassTransformer() {
         registerTransformer(new GuiChatTransformer());
+        registerTransformer(new GuiTextFieldTransformer());
     }
 
     private void registerTransformer(ITransformer transformer) {

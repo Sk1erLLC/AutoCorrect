@@ -44,6 +44,7 @@ dependencies {
         exclude module: "asm"
         exclude module: "guava"
     }
+    implementation group: 'javax.measure', name: 'jsr-275', version: '0.9.1'
 }
 
 processResources {
@@ -76,11 +77,35 @@ jar {
     }
 }
 
-shadowJar {
-//    minimize {
-//        exclude(dependency("org.languagetool:language-en:4.6"))
-//        exclude(dependency("org.languagetool:language-core:4.6"))
-//    }
+reobf {
+    shadowJar { mappingType = 'SEARGE' }
+}
 
-    relocate 'org.apache.commons', 'club.sk1er.org.apache.commons'
+tasks.build.dependsOn reobfShadowJar
+
+shadowJar {
+    minimize {
+        exclude(dependency("org.languagetool:.*:.*"))
+        exclude(dependency("net.loomchild:segment:.*"))
+        exclude(dependency("org.apache.commons:.*:.*"))
+        exclude(dependency("org.apache:.*:.*"))
+        exclude(dependency("javax.measure:.*:.*"))
+        exclude(dependency("tech.units:.*:.*"))
+        exclude(dependency("tech.uom.lib:.*:.*"))
+        exclude(dependency("ml.dmlc:.*:.*"))
+        exclude(dependency("org.slf4j:.*:.*"))
+        exclude(dependency("org.carrot2:.*:.*"))
+        exclude(dependency("org.apache.opennlp:.*:.*"))
+        exclude(dependency("com.carrotsearch:.*:.*"))
+    }
+
+    relocate 'org.apache.commons.csv', 'club.sk1er.org.apache.commons.csv'
+    relocate 'org.apache.commons.text', 'club.sk1er.org.apache.commons.text'
+    relocate 'org.apache.commons.lang3', 'club.sk1er.org.apache.commons.lang3'
+    relocate 'org.apache.commons.pool2', 'club.sk1er.org.apache.commons.pool2'
+
+    exclude 'module-info.class'
+    exclude 'META-INF/versions/**'
+
+    classifier ''
 }

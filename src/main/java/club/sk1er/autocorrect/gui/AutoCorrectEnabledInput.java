@@ -31,15 +31,11 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
     public AutoCorrectEnabledInput(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height) {
         super(componentId, fontrendererObj, x, y, par5Width, par6Height);
-
-        System.out.println("Instantiating ACEI.");
     }
 
     @Override
     public void drawTextBox() {
         super.drawTextBox();
-
-        System.out.println("Drawing");
 
         if (this.getVisible() && (System.currentTimeMillis() - lastTypeTime) > 1000) {
             updateSpellcheck();
@@ -143,15 +139,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
         if (p_146201_2_ == Keyboard.KEY_TAB || p_146201_2_ == Keyboard.KEY_RETURN && suggestions != null) {
             if (suggestions.size() - 1 < selectedSuggestion || selectedSuggestion < 0) return true;
 
-            this.text = this.text.substring(0, currentMatch.getFromPos())
-                    + suggestions.get(selectedSuggestion)
-                    + this.text.substring(currentMatch.getToPos());
-
-            currentIssues.removeIf((it) -> it.equals(currentMatch));
-
-            currentMatch = null;
-            suggestions = null;
-            selectedSuggestion = -1;
+            completeSuggestion();
             return true;
         }
 
@@ -199,15 +187,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
             if (mX < x || mX > x + boxWidth || mY < bottomY - boxHeight || mY > bottomY) {
                 suggestions = null;
             } else if (selectedSuggestion < suggestions.size() && selectedSuggestion >= 0) {
-                this.text = this.text.substring(0, currentMatch.getFromPos())
-                        + suggestions.get(selectedSuggestion)
-                        + this.text.substring(currentMatch.getToPos());
-
-                currentIssues.removeIf((it) -> it.equals(currentMatch));
-
-                currentMatch = null;
-                suggestions = null;
-                selectedSuggestion = -1;
+                completeSuggestion();
             }
         }
 
@@ -227,17 +207,22 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
             updateSpellcheck();
 
-            for (RuleMatch match : currentIssues) {
-                if (match.getFromPos() <= clickPosition && clickPosition <= match.getToPos()) {
-                    // Show options popup
-                    suggestions = match.getSuggestedReplacements();
-                    currentMatch = match;
-                    selectedSuggestion = 0;
-
-                    break;
-                }
-            }
+            generateSuggestions(clickPosition);
         }
+    }
+
+    private void completeSuggestion() {
+        this.text = this.text.substring(0, currentMatch.getFromPos())
+                + suggestions.get(selectedSuggestion)
+                + this.text.substring(currentMatch.getToPos());
+
+        currentIssues.removeIf((it) -> it.equals(currentMatch));
+
+        setCursorPosition(currentMatch.getToPos());
+
+        currentMatch = null;
+        suggestions = null;
+        selectedSuggestion = -1;
     }
 
     @Override
@@ -251,15 +236,19 @@ public class AutoCorrectEnabledInput extends GuiTextField {
                 selectedSuggestion = -1;
             }
         } else if (currentIssues != null) {
-            for (RuleMatch match : currentIssues) {
-                if (match.getFromPos() <= p_146190_1_ && p_146190_1_ <= match.getToPos()) {
-                    // Show options popup
-                    suggestions = match.getSuggestedReplacements();
-                    currentMatch = match;
-                    selectedSuggestion = 0;
+            generateSuggestions(p_146190_1_);
+        }
+    }
 
-                    break;
-                }
+    private void generateSuggestions(int p_146190_1_) {
+        for (RuleMatch match : currentIssues) {
+            if (match.getFromPos() <= p_146190_1_ && p_146190_1_ <= match.getToPos()) {
+                // Show options popup
+                suggestions = match.getSuggestedReplacements().stream().limit(20).collect(Collectors.toList());
+                currentMatch = match;
+                selectedSuggestion = 0;
+
+                break;
             }
         }
     }
@@ -274,14 +263,12 @@ public class AutoCorrectEnabledInput extends GuiTextField {
                                 if (it.getRule() instanceof UppercaseSentenceStartRule) return false;
 
                                 if (it.getRule() instanceof PatternRule) {
-                                    return !((PatternRule) (it.getRule())).getFullId().equals("I_LOWERCASE[1]");
+                                    return !((PatternRule) (it.getRule())).getFullId().startsWith("I_LOWERCASE");
                                 }
 
                                 return true;
                             })
                             .collect(Collectors.toList());
-
-                    System.out.println("Current Issues: " + currentIssues);
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {

@@ -1,7 +1,13 @@
 package club.sk1er.autocorrect.tweaker.transform;
 
+import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.util.TraceMethodVisitor;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ListIterator;
 
 public class GuiChatTransformer implements ITransformer {
@@ -19,19 +25,15 @@ public class GuiChatTransformer implements ITransformer {
             if (methodName.equalsIgnoreCase("initGui") || methodName.equalsIgnoreCase("func_73866_w_")) {
                 ListIterator<AbstractInsnNode> iterator = methodNode.instructions.iterator();
 
-                System.out.println("Found initGui");
-
                 while (iterator.hasNext()) {
                     AbstractInsnNode node = iterator.next();
 
                     if (node instanceof TypeInsnNode && node.getOpcode() == NEW) {
                         ((TypeInsnNode) node).desc = "club/sk1er/autocorrect/gui/AutoCorrectEnabledInput";
-                        System.out.println("Replaced type");
                     } else if (node instanceof MethodInsnNode && node.getOpcode() == INVOKESPECIAL) {
                         MethodInsnNode methodInsnNode = (MethodInsnNode) node;
                         methodInsnNode.owner = "club/sk1er/autocorrect/gui/AutoCorrectEnabledInput";
                         iterator.add(new TypeInsnNode(CHECKCAST, "net/minecraft/client/gui/GuiTextField"));
-                        System.out.println("Replaced invoke");
                     }
                 }
             } else if (methodName.equalsIgnoreCase("keyTyped") || methodName.equalsIgnoreCase("func_73869_a")) {
@@ -46,89 +48,30 @@ public class GuiChatTransformer implements ITransformer {
                     if (node instanceof MethodInsnNode && node.getOpcode() == INVOKEVIRTUAL) {
                         MethodInsnNode methNode = ((MethodInsnNode) node);
 
-                        if (methNode.owner.equals("net/minecraft/client/gui/GuiChat")
-                                && (methNode.name.equals("getSentHistory") || methNode.name.equals("func_146402_a"))) {
+                        String methName = FMLDeobfuscatingRemapper.INSTANCE.mapMethodName(methNode.owner, methNode.name, methNode.desc);
 
-                            iterator.remove();
-                            AbstractInsnNode prev1 = iterator.previous();
-                            iterator.remove();
-                            AbstractInsnNode prev2 = iterator.previous();
-                            iterator.remove();
+                        switch (methName) {
+                            case "getSentHistory":
+                            case "func_146402_a": {
+                                injectCall(iterator, label, methNode);
+                            }
+                            case "autocompletePlayerNames":
+                            case "func_146404_p_":
+                                iterator.remove();
+                                AbstractInsnNode prev = iterator.previous();
+                                iterator.remove();
 
-                            /*
-                            ALOAD 0
-                            GETFIELD net/minecraft/client/gui/GuiChat.inputField : Lnet/minecraft/client/gui/GuiTextField;
-                            ILOAD 1
-                            ILOAD 2
-                            INVOKEVIRTUAL net/minecraft/client/gui/GuiTextField.textboxKeyTyped (CI)Z
-                            POP
-                             */
-                            iterator.add(new VarInsnNode(ALOAD, 0));
-                            iterator.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/gui/GuiChat", "inputField", "Lnet/minecraft/client/gui/GuiTextField;"));
-                            iterator.add(new VarInsnNode(ILOAD, 1));
-                            iterator.add(new VarInsnNode(ILOAD, 2));
-                            iterator.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/client/gui/GuiTextField", "textboxKeyTyped", "(CI)Z"));
-                            iterator.add(new JumpInsnNode(IFNE, label));
-                            iterator.add(prev2);
-                            iterator.add(prev1);
-                            iterator.add(methNode);
-                            iterator.next();
+                                injectInsns(iterator, label);
+                                iterator.add(prev);
+                                iterator.add(methNode);
+                                iterator.next();
 
-                            System.out.println("Injected up arrows");
-                        } else if (methNode.owner.equals("net/minecraft/client/gui/GuiChat")
-                                && (methNode.name.equals("autocompletePlayerNames") || methNode.name.equals("func_146404_p_"))) {
-                            iterator.remove();
-                            AbstractInsnNode prev = iterator.previous();
-                            iterator.remove();
-
-                            /*
-                            ALOAD 0
-                            GETFIELD net/minecraft/client/gui/GuiChat.inputField : Lnet/minecraft/client/gui/GuiTextField;
-                            ILOAD 1
-                            ILOAD 2
-                            INVOKEVIRTUAL net/minecraft/client/gui/GuiTextField.textboxKeyTyped (CI)Z
-                            POP
-                             */
-                            iterator.add(new VarInsnNode(ALOAD, 0));
-                            iterator.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/gui/GuiChat", "inputField", "Lnet/minecraft/client/gui/GuiTextField;"));
-                            iterator.add(new VarInsnNode(ILOAD, 1));
-                            iterator.add(new VarInsnNode(ILOAD, 2));
-                            iterator.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/client/gui/GuiTextField", "textboxKeyTyped", "(CI)Z"));
-                            iterator.add(new JumpInsnNode(IFNE, label));
-                            iterator.add(prev);
-                            iterator.add(methNode);
-                            iterator.next();
-
-                            System.out.println("Injected tab");
-                        } else if (methNode.owner.equals("net/minecraft/client/gui/GuiChat")
-                                && methNode.name.equals("sendChatMessage") || methNode.name.equals("func_175275_f")) {
-                            iterator.remove();
-                            AbstractInsnNode prev1 = iterator.previous();
-                            iterator.remove();
-                            AbstractInsnNode prev2 = iterator.previous();
-                            iterator.remove();
-
-                            /*
-                            ALOAD 0
-                            GETFIELD net/minecraft/client/gui/GuiChat.inputField : Lnet/minecraft/client/gui/GuiTextField;
-                            ILOAD 1
-                            ILOAD 2
-                            INVOKEVIRTUAL net/minecraft/client/gui/GuiTextField.textboxKeyTyped (CI)Z
-                            POP
-                             */
-                            iterator.add(new VarInsnNode(ALOAD, 0));
-                            iterator.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/gui/GuiChat", "inputField", "Lnet/minecraft/client/gui/GuiTextField;"));
-                            iterator.add(new VarInsnNode(ILOAD, 1));
-                            iterator.add(new VarInsnNode(ILOAD, 2));
-                            iterator.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/client/gui/GuiTextField", "textboxKeyTyped", "(CI)Z"));
-                            iterator.add(new JumpInsnNode(IFNE, label));
-                            iterator.add(prev2);
-                            iterator.add(prev1);
-                            iterator.add(methNode);
-                            iterator.next();
-
-                            System.out.println("Injected enter" +
-                                    "");
+                                break;
+                            case "sendChatMessage":
+                            case "func_175275_f": {
+                                injectCall(iterator, label, methNode);
+                                break;
+                            }
                         }
                     } else if (node.getOpcode() == RETURN) {
                         iterator.previous();
@@ -137,6 +80,48 @@ public class GuiChatTransformer implements ITransformer {
                     }
                 }
             }
+        }
+    }
+
+    private void injectCall(ListIterator<AbstractInsnNode> iterator, LabelNode label, MethodInsnNode methNode) {
+        iterator.remove();
+        AbstractInsnNode prev1 = iterator.previous();
+        iterator.remove();
+        AbstractInsnNode prev2 = iterator.previous();
+        iterator.remove();
+
+
+        injectInsns(iterator, label);
+        iterator.add(prev2);
+        iterator.add(prev1);
+        iterator.add(methNode);
+        iterator.next();
+    }
+
+    private void injectInsns(ListIterator<AbstractInsnNode> iterator, LabelNode label) {
+        /*
+        ALOAD 0
+        GETFIELD net/minecraft/client/gui/GuiChat.inputField : Lnet/minecraft/client/gui/GuiTextField;
+        ILOAD 1
+        ILOAD 2
+        INVOKEVIRTUAL net/minecraft/client/gui/GuiTextField.textboxKeyTyped (CI)Z
+        POP
+         */
+
+        if (!(Boolean) (Launch.blackboard.get("fml.deobfuscatedEnvironment"))) {
+            iterator.add(new VarInsnNode(ALOAD, 0));
+            iterator.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/gui/GuiChat", "field_146415_a", "Lnet/minecraft/client/gui/GuiTextField;"));
+            iterator.add(new VarInsnNode(ILOAD, 1));
+            iterator.add(new VarInsnNode(ILOAD, 2));
+            iterator.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/client/gui/GuiTextField", "func_146201_a", "(CI)Z"));
+            iterator.add(new JumpInsnNode(IFNE, label));
+        } else {
+            iterator.add(new VarInsnNode(ALOAD, 0));
+            iterator.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/gui/GuiChat", "inputField", "Lnet/minecraft/client/gui/GuiTextField;"));
+            iterator.add(new VarInsnNode(ILOAD, 1));
+            iterator.add(new VarInsnNode(ILOAD, 2));
+            iterator.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/client/gui/GuiTextField", "textboxKeyTyped", "(CI)Z"));
+            iterator.add(new JumpInsnNode(IFNE, label));
         }
     }
 }
