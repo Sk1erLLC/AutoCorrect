@@ -53,7 +53,19 @@ public class GuiChatTransformer implements ITransformer {
                         switch (methName) {
                             case "getSentHistory":
                             case "func_146402_a": {
-                                injectCall(iterator, label, methNode);
+                                iterator.remove();
+                                AbstractInsnNode prev1 = iterator.previous();
+                                iterator.remove();
+                                AbstractInsnNode prev2 = iterator.previous();
+                                iterator.remove();
+
+                                injectInsns(iterator, label);
+                                iterator.add(prev2);
+                                iterator.add(prev1);
+                                iterator.add(methNode);
+                                iterator.next();
+
+                                break;
                             }
                             case "autocompletePlayerNames":
                             case "func_146404_p_":
@@ -69,7 +81,19 @@ public class GuiChatTransformer implements ITransformer {
                                 break;
                             case "sendChatMessage":
                             case "func_175275_f": {
-                                injectCall(iterator, label, methNode);
+                                iterator.remove();
+                                AbstractInsnNode prev1 = iterator.previous();
+                                iterator.remove();
+                                AbstractInsnNode prev2 = iterator.previous();
+                                iterator.remove();
+
+
+                                injectInsns(iterator, label);
+                                iterator.add(prev2);
+                                iterator.add(prev1);
+                                iterator.add(methNode);
+                                iterator.next();
+
                                 break;
                             }
                         }
@@ -81,21 +105,6 @@ public class GuiChatTransformer implements ITransformer {
                 }
             }
         }
-    }
-
-    private void injectCall(ListIterator<AbstractInsnNode> iterator, LabelNode label, MethodInsnNode methNode) {
-        iterator.remove();
-        AbstractInsnNode prev1 = iterator.previous();
-        iterator.remove();
-        AbstractInsnNode prev2 = iterator.previous();
-        iterator.remove();
-
-
-        injectInsns(iterator, label);
-        iterator.add(prev2);
-        iterator.add(prev1);
-        iterator.add(methNode);
-        iterator.next();
     }
 
     private void injectInsns(ListIterator<AbstractInsnNode> iterator, LabelNode label) {

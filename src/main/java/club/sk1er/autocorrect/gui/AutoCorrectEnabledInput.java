@@ -218,7 +218,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
         currentIssues.removeIf((it) -> it.equals(currentMatch));
 
-        setCursorPosition(currentMatch.getToPos());
+        setCursorPosition(currentMatch.getFromPos() + suggestions.get(selectedSuggestion).length());
 
         currentMatch = null;
         suggestions = null;
