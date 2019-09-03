@@ -136,7 +136,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
     @Override
     public boolean textboxKeyTyped(char p_146201_1_, int p_146201_2_) {
-        if (p_146201_2_ == Keyboard.KEY_TAB || p_146201_2_ == Keyboard.KEY_RETURN && suggestions != null) {
+        if ((p_146201_2_ == Keyboard.KEY_TAB || p_146201_2_ == Keyboard.KEY_RETURN) && suggestions != null) {
             if (suggestions.size() - 1 < selectedSuggestion || selectedSuggestion < 0) return true;
 
             completeSuggestion();
