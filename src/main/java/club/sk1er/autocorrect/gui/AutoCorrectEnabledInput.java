@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.util.MathHelper;
 import org.languagetool.rules.RuleMatch;
 import org.languagetool.rules.UppercaseSentenceStartRule;
 import org.languagetool.rules.patterns.PatternRule;
@@ -28,6 +27,8 @@ public class AutoCorrectEnabledInput extends GuiTextField {
     private final List<String> NO_SUGGESTIONS = Lists.asList("No suggestions!", new String[]{});
     private int lastMouseX = 0;
     private int lastMouseY = 0;
+    private boolean iterating = false;
+    private int iterIndex = -1;
 
     public AutoCorrectEnabledInput(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height) {
         super(componentId, fontrendererObj, x, y, par5Width, par6Height);
@@ -37,7 +38,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
     public void drawTextBox() {
         super.drawTextBox();
 
-        if (this.getVisible() && (System.currentTimeMillis() - lastTypeTime) > 1000) {
+        if (this.getVisible() && (System.currentTimeMillis() - lastTypeTime) > 250) {
             updateSpellcheck();
             lastTypeTime += 20000;
         }
@@ -117,6 +118,9 @@ public class AutoCorrectEnabledInput extends GuiTextField {
         currentMatch = null;
         selectedSuggestion = -1;
 
+        iterating = false;
+        iterIndex = -1;
+
         updateSpellcheck();
     }
 
@@ -136,6 +140,50 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
     @Override
     public boolean textboxKeyTyped(char p_146201_1_, int p_146201_2_) {
+        if (p_146201_2_ == Keyboard.KEY_ESCAPE) {
+            iterating = false;
+            iterIndex = -1;
+            updateSpellcheck();
+
+            currentMatch = null;
+            suggestions = null;
+            selectedSuggestion = -1;
+
+            return true;
+        }
+
+        if (p_146201_2_ == Keyboard.KEY_RETURN
+                && (Keyboard.isKeyDown(Keyboard.KEY_LMENU) || Keyboard.isKeyDown(Keyboard.KEY_RMENU))
+                && currentIssues != null
+                && currentIssues.size() > 0) {
+            if (iterating) {
+                iterIndex++;
+
+                if (iterIndex >= currentIssues.size()) {
+                    iterating = false;
+                    iterIndex = -1;
+                    updateSpellcheck();
+
+                    setCursorPosition(text.length());
+                    return true;
+                }
+
+                cursorPosition = currentIssues.get(iterIndex).getFromPos();
+                this.setSelectionPos(this.cursorPosition);
+                generateSuggestions(cursorPosition);
+
+                return true;
+            }
+
+            iterating = true;
+            iterIndex = 0;
+
+            cursorPosition = currentIssues.get(iterIndex).getFromPos();
+            this.setSelectionPos(this.cursorPosition);
+            generateSuggestions(cursorPosition);
+            return true;
+        }
+
         if ((p_146201_2_ == Keyboard.KEY_TAB || p_146201_2_ == Keyboard.KEY_RETURN) && suggestions != null) {
             if (suggestions.size() - 1 < selectedSuggestion || selectedSuggestion < 0) return true;
 
@@ -212,17 +260,44 @@ public class AutoCorrectEnabledInput extends GuiTextField {
     }
 
     private void completeSuggestion() {
-        this.text = this.text.substring(0, currentMatch.getFromPos())
-                + suggestions.get(selectedSuggestion)
-                + this.text.substring(currentMatch.getToPos());
+        try {
+            String oldText = this.text.substring(currentMatch.getFromPos(), currentMatch.getToPos());
 
-        currentIssues.removeIf((it) -> it.equals(currentMatch));
+            this.text = this.text.substring(0, currentMatch.getFromPos())
+                    + suggestions.get(selectedSuggestion)
+                    + this.text.substring(currentMatch.getToPos());
 
-        setCursorPosition(currentMatch.getFromPos() + suggestions.get(selectedSuggestion).length());
+            int lengthDiff = suggestions.get(selectedSuggestion).length() - oldText.length();
 
-        currentMatch = null;
-        suggestions = null;
-        selectedSuggestion = -1;
+            currentIssues.removeIf((it) -> it.equals(currentMatch));
+
+            currentIssues.forEach((it) -> {
+                if (it.getFromPos() > currentMatch.getToPos())
+                    it.setOffsetPosition(it.getFromPos() + lengthDiff, it.getToPos() + lengthDiff);
+            });
+
+            RuleMatch tmp = currentMatch;
+
+            currentMatch = null;
+            suggestions = null;
+            selectedSuggestion = -1;
+
+            if (!iterating) {
+                setCursorPosition(tmp.getFromPos() + suggestions.get(selectedSuggestion).length());
+            } else {
+                if (iterIndex >= currentIssues.size()) {
+                    iterating = false;
+                    iterIndex = -1;
+                    setCursorPosition(text.length());
+                    updateSpellcheck();
+                    return;
+                }
+
+                setCursorPosition(currentIssues.get(iterIndex).getFromPos());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -269,6 +344,19 @@ public class AutoCorrectEnabledInput extends GuiTextField {
                                 return true;
                             })
                             .collect(Collectors.toList());
+
+                    boolean validSuggestions = currentIssues
+                            .stream()
+                            .anyMatch((it) -> cursorPosition >= it.getFromPos()
+                                    && cursorPosition <= it.getToPos()
+                                    && it.getSuggestedReplacements().equals(currentMatch.getSuggestedReplacements())
+                            );
+
+                    if (!validSuggestions) {
+                        currentMatch = null;
+                        suggestions = null;
+                        selectedSuggestion = -1;
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {

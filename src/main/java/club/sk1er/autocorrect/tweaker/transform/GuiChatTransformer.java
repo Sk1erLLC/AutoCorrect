@@ -39,6 +39,7 @@ public class GuiChatTransformer implements ITransformer {
             } else if (methodName.equalsIgnoreCase("keyTyped") || methodName.equalsIgnoreCase("func_73869_a")) {
                 ListIterator<AbstractInsnNode> iterator = methodNode.instructions.iterator();
                 LabelNode label = new LabelNode();
+                boolean injectedEsc = false;
 
                 while (iterator.hasNext()) {
                     AbstractInsnNode node = iterator.next();
@@ -52,49 +53,26 @@ public class GuiChatTransformer implements ITransformer {
 
                         switch (methName) {
                             case "getSentHistory":
-                            case "func_146402_a": {
-                                iterator.remove();
-                                AbstractInsnNode prev1 = iterator.previous();
-                                iterator.remove();
-                                AbstractInsnNode prev2 = iterator.previous();
-                                iterator.remove();
-
-                                injectInsns(iterator, label);
-                                iterator.add(prev2);
-                                iterator.add(prev1);
-                                iterator.add(methNode);
-                                iterator.next();
+                            case "func_146402_a":
+                            case "sendChatMessage":
+                            case "func_175275_f": {
+                                setupIterator(iterator, label, 3);
 
                                 break;
                             }
                             case "autocompletePlayerNames":
-                            case "func_146404_p_":
-                                iterator.remove();
-                                AbstractInsnNode prev = iterator.previous();
-                                iterator.remove();
-
-                                injectInsns(iterator, label);
-                                iterator.add(prev);
-                                iterator.add(methNode);
-                                iterator.next();
+                            case "func_146404_p_": {
+                                setupIterator(iterator, label, 2);
 
                                 break;
-                            case "sendChatMessage":
-                            case "func_175275_f": {
-                                iterator.remove();
-                                AbstractInsnNode prev1 = iterator.previous();
-                                iterator.remove();
-                                AbstractInsnNode prev2 = iterator.previous();
-                                iterator.remove();
+                            }
+                            case "displayGuiScreen":
+                            case "func_147108_a": {
+                                if (injectedEsc) break;
 
+                                injectedEsc = true;
 
-                                injectInsns(iterator, label);
-                                iterator.add(prev2);
-                                iterator.add(prev1);
-                                iterator.add(methNode);
-                                iterator.next();
-
-                                break;
+                                setupIterator(iterator, label, 5);
                             }
                         }
                     } else if (node.getOpcode() == RETURN) {
@@ -104,6 +82,18 @@ public class GuiChatTransformer implements ITransformer {
                     }
                 }
             }
+        }
+    }
+
+    private void setupIterator(ListIterator<AbstractInsnNode> iterator, LabelNode label, int offset) {
+        for (int i = 0; i < offset; i++) {
+            iterator.previous();
+        }
+
+        injectInsns(iterator, label);
+
+        for (int i = 0; i < offset; i++) {
+            iterator.next();
         }
     }
 
