@@ -69,10 +69,10 @@ public class AutoCorrectEnabledInput extends GuiTextField {
             int mX = Mouse.getEventX() * this.width / Minecraft.getMinecraft().displayWidth;
             int mY = (Minecraft.getMinecraft().currentScreen.height) - Mouse.getEventY() * (Minecraft.getMinecraft().currentScreen.height) / Minecraft.getMinecraft().displayHeight - 1;
 
-            if (mX >= x && mX <= x + boxWidth && mY >= bottomY - boxHeight && mY <= bottomY && mX != lastMouseX && mY != lastMouseY) {
+            if (mX >= x && mX <= x + boxWidth && mY >= bottomY - boxHeight && mY <= bottomY && (mX != lastMouseX || mY != lastMouseY)) {
                 int insideY = mY - (bottomY - boxHeight);
 
-                int clickIndex = insideY / (fontRendererInstance.FONT_HEIGHT + 4);
+                int clickIndex = insideY / (fontRendererInstance.FONT_HEIGHT + 2);
                 selectedSuggestion = (suggestions.size() - 1) - clickIndex;
 
                 lastMouseX = mX;
@@ -140,7 +140,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
 
     @Override
     public boolean textboxKeyTyped(char p_146201_1_, int p_146201_2_) {
-        if (p_146201_2_ == Keyboard.KEY_ESCAPE) {
+        if (p_146201_2_ == Keyboard.KEY_ESCAPE && (iterating || suggestions != null)) {
             iterating = false;
             iterIndex = -1;
             updateSpellcheck();
@@ -262,12 +262,13 @@ public class AutoCorrectEnabledInput extends GuiTextField {
     private void completeSuggestion() {
         try {
             String oldText = this.text.substring(currentMatch.getFromPos(), currentMatch.getToPos());
+            String newText = suggestions.get(selectedSuggestion);
 
             this.text = this.text.substring(0, currentMatch.getFromPos())
-                    + suggestions.get(selectedSuggestion)
+                    + newText
                     + this.text.substring(currentMatch.getToPos());
 
-            int lengthDiff = suggestions.get(selectedSuggestion).length() - oldText.length();
+            int lengthDiff = newText.length() - oldText.length();
 
             currentIssues.removeIf((it) -> it.equals(currentMatch));
 
@@ -283,7 +284,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
             selectedSuggestion = -1;
 
             if (!iterating) {
-                setCursorPosition(tmp.getFromPos() + suggestions.get(selectedSuggestion).length());
+                setCursorPosition(tmp.getFromPos() + newText.length());
             } else {
                 if (iterIndex >= currentIssues.size()) {
                     iterating = false;
@@ -345,7 +346,7 @@ public class AutoCorrectEnabledInput extends GuiTextField {
                             })
                             .collect(Collectors.toList());
 
-                    boolean validSuggestions = currentIssues
+                    boolean validSuggestions = currentMatch != null && currentIssues
                             .stream()
                             .anyMatch((it) -> cursorPosition >= it.getFromPos()
                                     && cursorPosition <= it.getToPos()
