@@ -106,6 +106,20 @@ shadowJar {
 
     exclude 'module-info.class'
     exclude 'META-INF/versions/**'
+    exclude '**/*.png'
+    exclude '**/*.jpg'
+    exclude '**/*.gif'
+    exclude '**/*.js'
+    exclude '**/*.html'
+    exclude '**/*.css'
+//    exclude '**/*.bin'
+
+    exclude 'lib/**'
+    exclude 'com/sun/jna/**'
+
+    // These look like dev dependencies
+    exclude 'languages.shorttext/**'
+    exclude 'languages/**'
 
     classifier ''
 }
