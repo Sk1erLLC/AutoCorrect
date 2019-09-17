@@ -14,7 +14,9 @@ public class GuiTextFieldTransformer implements ITransformer {
         // Make all my fields protected!
 
         classNode.fields.forEach(field -> {
-            field.access = Opcodes.ACC_PROTECTED;
+            if (field.access == Opcodes.ACC_PRIVATE) {
+                field.access = Opcodes.ACC_PROTECTED;
+            }
         });
     }
 }
