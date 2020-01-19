@@ -5,7 +5,7 @@ import org.languagetool.JLanguageTool;
 import org.languagetool.MultiThreadedJLanguageTool;
 import org.languagetool.language.AmericanEnglish;
 
-@Mod(modid = "autocorrect", name = "AutoCorrect", version = "1.0")
+@Mod(modid = "autocorrect", name = "AutoCorrect", version = "1.1")
 public class AutoCorrect {
     @Mod.Instance
     public static AutoCorrect INSTANCE;

@@ -3,7 +3,7 @@
     "modid": "autocorrect",
     "name": "AutoCorrect",
     "description": "AutoCorrect adds helpful corrections to your spelling!",
-    "version": "1.0.0",
+    "version": "${version}",
     "mcversion": "1.8.9",
     "url": "https://sk1er.club",
     "updateUrl": "",
