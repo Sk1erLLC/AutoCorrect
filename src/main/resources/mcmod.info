@@ -4,7 +4,7 @@
     "name": "AutoCorrect",
     "description": "AutoCorrect adds helpful corrections to your spelling!",
     "version": "${version}",
-    "mcversion": "1.8.9",
+    "mcversion": "${mcversion}",
     "url": "https://sk1er.club",
     "updateUrl": "",
     "authorList": ["FalseHonesty"],
